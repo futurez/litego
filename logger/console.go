@@ -18,7 +18,6 @@ func newBrush(color string) brush {
 }
 
 var colors = []brush{
-	newBrush("1;36m"), // Fatal	    cyan
 	newBrush("1;35m"), // Painc     magenta
 	newBrush("1;31m"), // Error     red
 	newBrush("1;33m"), // Warn	    yellow

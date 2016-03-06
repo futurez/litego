@@ -70,6 +70,7 @@ type Logger struct {
 	funcdepth int
 	localip   string
 	appname   string
+	bprefix   bool
 	prefix    string
 	syncClose chan bool
 	msgQueue  chan *logMsg
@@ -128,9 +129,17 @@ func (lg *Logger) write(loglevel int, msg string) {
 			line = 0
 		}
 		_, filename := path.Split(file)
-		lm.msg = fmt.Sprintf("%s/%s/%s/%s:%d %s", lg.localip, lg.appname, lg.prefix, filename, line, msg)
+		if lg.bprefix {
+			lm.msg = fmt.Sprintf("%s/%s/%s/%s:%d %s", lg.localip, lg.appname, lg.prefix, filename, line, msg)
+		} else {
+			lm.msg = fmt.Sprintf("%s/%s/%s:%d %s", lg.localip, lg.appname, filename, line, msg)
+		}
 	} else {
-		lm.msg = fmt.Sprintf("%s/%s/%s %s", lg.localip, lg.appname, lg.prefix, msg)
+		if lg.bprefix {
+			lm.msg = fmt.Sprintf("%s/%s/%s %s", lg.localip, lg.appname, lg.prefix, msg)
+		} else {
+			lm.msg = fmt.Sprintf("%s/%s %s", lg.localip, lg.appname, msg)
+		}
 	}
 	lg.msgQueue <- lm
 	if lm.level == LevelPanic {
@@ -162,7 +171,10 @@ func (lg Logger) GetFuncDepth() int {
 }
 
 func (lg *Logger) SetPrefix(prefix string) {
-	lg.prefix = prefix
+	if len(prefix) > 0 {
+		lg.prefix = prefix
+		lg.bprefix = true
+	}
 }
 
 func (lg Logger) GetPrefix() string {
