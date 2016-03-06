@@ -217,7 +217,7 @@ func (lg *Logger) Close() {
 var stdLogger *Logger
 
 func getlogname() string {
-	return util.GetCurrentPath() + "/../logdb/" + util.GetAppName() + ".log"
+	return util.GetCurrentPath() + "/../log/" + util.GetAppName() + ".log"
 }
 
 func init() {
