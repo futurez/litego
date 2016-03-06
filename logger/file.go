@@ -29,6 +29,7 @@ type FileLogConfig struct {
 	FileName string `json:"filename"`
 	MaxSize  int    `json:"maxsize"`
 	MaxDays  int    `json:"maxdays"`
+	LogLevel int    `json:"loglevel"`
 }
 
 type FileLogWriter struct {
@@ -66,12 +67,13 @@ func (this *FileLogWriter) Write(b []byte) (int, error) {
 }
 
 func (this *FileLogWriter) setFd(fd *os.File) error {
-	if this.fd != nil {
-		this.fd.Close()
-	}
 	finfo, err := fd.Stat()
 	if err != nil {
-		return fmt.Errorf("get stat err: %s\n", err)
+		return err
+	}
+
+	if this.fd != nil {
+		this.fd.Close()
 	}
 	this.curSize = int(finfo.Size())
 	this.fd = fd
@@ -90,6 +92,9 @@ func (this *FileLogWriter) docheck() {
 
 // write logger message into file.
 func (this *FileLogWriter) WriteMsg(msg string, level int) error {
+	if level > this.config.LogLevel {
+		return nil
+	}
 	this.lg.Println(msg)
 	this.docheck()
 	return nil
@@ -101,11 +106,13 @@ func (this *FileLogWriter) createLogFile() error {
 		pathname := this.config.FileName[0:offset]
 		err := os.MkdirAll(pathname, 0660)
 		if err != nil {
+			log.Printf("filename=%s, err=%s\n", this.config.FileName, err.Error())
 			return err
 		}
 	}
 	fd, err := os.OpenFile(this.config.FileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
+		log.Printf("filename=%s, err=%s\n", this.config.FileName, err.Error())
 		return err
 	}
 	this.openDate = time.Now().Day()
@@ -164,14 +171,11 @@ func (this *FileLogWriter) deleteOldLog() {
 	})
 }
 
-func (this *FileLogWriter) Destroy() {
+func (this *FileLogWriter) Close() {
+	this.fd.Sync()
 	this.fd.Close()
 }
 
-func (this *FileLogWriter) Flush() {
-	this.fd.Sync()
-}
-
 func init() {
-	Register(FILE_PROTOCOL_LOG, &FileLogAdapter{})
+	Register(FILE_PROTOCOL, &FileLogAdapter{})
 }

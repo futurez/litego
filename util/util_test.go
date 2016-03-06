@@ -6,11 +6,15 @@ import (
 )
 
 func TestRandomNumber(t *testing.T) {
-	t.Log("first  random number :", Rand())
-	t.Log("second random number :", Rand())
+	t.Log("1 random number :", Rand())
+	t.Log("2 random number :", Rand())
 }
 
 func TestGetUUID(t *testing.T) {
-	t.Log("first  UUID :", GetUUID())
-	t.Log("second UUID :", GetUUID())
+	t.Log("1 UUID :", GetUUID())
+	t.Log("2 UUID :", GetUUID())
+}
+
+func TestGetIntranetIp(t *testing.T) {
+	t.Log("Local ip :", GetIntranetIP())
 }

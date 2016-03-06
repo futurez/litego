@@ -7,17 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
 )
 
 type TcpLogAdapter struct {
 }
 
-func (this *TcpLogAdapter) newLoggerInstance() LoggerInterface {
-	tw := &TcpLogWriter{}
-	tw.lg = log.New(tw, "", (log.Ldate | log.Ltime | log.Lmicroseconds))
-	return tw
-
+func (adapter TcpLogAdapter) newLoggerInstance() LoggerInterface {
+	tlw := &TcpLogWriter{}
+	tlw.lg = log.New(tlw, "", (log.Ldate | log.Ltime | log.Lmicroseconds))
+	return tlw
 }
 
 type TcpLogConfig struct {
@@ -26,72 +24,79 @@ type TcpLogConfig struct {
 }
 
 type TcpLogWriter struct {
-	lg     *log.Logger
-	conn   net.Conn
-	addr   string
-	config TcpLogConfig
+	lg      *log.Logger
+	tcpAddr *net.TCPAddr
+	tcpConn *net.TCPConn
 }
 
-func (this *TcpLogWriter) Write(b []byte) (int, error) {
-	var writeBuf bytes.Buffer
-	buflen := uint16(len(b) - 1) //'\n'
+func (tlw TcpLogWriter) Write(b []byte) (int, error) {
+	buflen := int16(len(b))
 	if buflen == 0 {
 		return 0, nil
 	}
+
+	var writeBuf bytes.Buffer
 	binary.Write(&writeBuf, binary.LittleEndian, buflen)
 	binary.Write(&writeBuf, binary.LittleEndian, b[0:buflen])
 
-	if this.conn == nil {
-		if err := this.connect(); err != nil {
+	return tlw.write(writeBuf.Bytes())
+}
+
+func (tlw *TcpLogWriter) write(b []byte) (int, error) {
+	if tlw.tcpConn == nil {
+		if err := tlw.connect(); err != nil {
 			return 0, err
 		}
 	}
 
-	n, err := this.conn.Write(writeBuf.Bytes())
+	n, err := tlw.tcpConn.Write(b)
 	if err != nil {
-		this.conn.Close()
-		this.conn = nil
+		tlw.Close()
+		log.Println(err.Error())
+		return 0, err
 	}
-	return n, err
+	return n, nil
 }
 
-func (this *TcpLogWriter) connect() error {
-	if this.conn != nil {
-		this.conn.Close()
-	}
+func (tlw *TcpLogWriter) connect() error {
+	tlw.Close()
+
 	var err error
-	this.conn, err = net.DialTimeout("tcp", this.addr, 5*time.Second)
+	tlw.tcpConn, err = net.DialTCP("tcp", nil, tlw.tcpAddr)
 	if err != nil {
-		fmt.Printf("TcpLog : connect %s failed, %s\n", this.addr, err.Error())
+		log.Println(tlw.tcpAddr.Network(), tlw.tcpAddr.String(), err.Error())
 		return err
 	}
+	return tlw.tcpConn.SetKeepAlive(true)
+}
+
+func (tlw *TcpLogWriter) Init(jsonconfig string) error {
+	var config TcpLogConfig
+	err := json.Unmarshal([]byte(jsonconfig), &config)
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+
+	tlw.tcpAddr, err = net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", config.Host, config.Port))
+	if err != nil {
+		log.Panicln(err.Error())
+	}
+
+	return tlw.connect()
+}
+
+func (tlw TcpLogWriter) WriteMsg(msg string, level int) error {
+	tlw.lg.Print(msg)
 	return nil
 }
 
-func (this *TcpLogWriter) Init(config string) error {
-	err := json.Unmarshal([]byte(config), &this.config)
-	if err != nil {
-		fmt.Printf("TcpLog : unmarshal json config failed, %s\n", err.Error())
-		return err
+func (tlw *TcpLogWriter) Close() {
+	if tlw.tcpConn != nil {
+		tlw.tcpConn.Close()
+		tlw.tcpConn = nil
 	}
-	this.addr = fmt.Sprintf("%s:%d", this.config.Host, this.config.Port)
-	return this.connect()
-}
-
-func (this *TcpLogWriter) WriteMsg(msg string, level int) error {
-	this.lg.Print(msg)
-	return nil
-}
-
-func (this *TcpLogWriter) Destroy() {
-	this.conn.Close()
-	this.conn = nil
-}
-
-func (this *TcpLogWriter) Flush() {
-
 }
 
 func init() {
-	Register(TCP_PROTOCOL_LOG, &TcpLogAdapter{})
+	Register(TCP_PROTOCOL, &TcpLogAdapter{})
 }
