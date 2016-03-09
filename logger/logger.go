@@ -68,6 +68,7 @@ type logMsg struct {
 type Logger struct {
 	sync.Mutex
 	funcdepth int
+	async     bool
 	localip   string
 	appname   string
 	bprefix   bool
@@ -80,13 +81,13 @@ type Logger struct {
 func NewLogger(channellen int64) *Logger {
 	lg := &Logger{
 		funcdepth: 3,
+		async:     false,
 		localip:   util.GetIntranetIP(),
 		appname:   util.GetAppName(),
 		syncClose: make(chan bool),
 		msgQueue:  make(chan *logMsg, channellen),
 		outputs:   make(map[string]LoggerInterface),
 	}
-	go lg.save()
 	return lg
 }
 
@@ -141,25 +142,38 @@ func (lg *Logger) write(loglevel int, msg string) {
 			lm.msg = fmt.Sprintf("%s/%s %s", lg.localip, lg.appname, msg)
 		}
 	}
-	lg.msgQueue <- lm
-	if lm.level == LevelPanic {
-		panic(lm.msg)
+
+	if lg.async {
+		lg.msgQueue <- lm
+	} else {
+		lg.outputMsg(lm)
+	}
+}
+
+func (lg *Logger) outputMsg(lm *logMsg) {
+	for _, output := range lg.outputs {
+		err := output.WriteMsg(lm.msg, lm.level)
+		if err != nil {
+			log.Println("ERROR, unable to WriteMsg:", err)
+		}
 	}
 }
 
 func (lg *Logger) save() {
+	if !lg.async {
+		return
+	}
 	for lm := range lg.msgQueue {
-		for _, output := range lg.outputs {
-			err := output.WriteMsg(lm.msg, lm.level)
-			if err != nil {
-				log.Println("ERROR, unable to WriteMsg:", err)
-			}
-		}
+		lg.outputMsg(lm)
 	}
-	for _, output := range lg.outputs {
-		output.Close()
+	<-lg.syncClose
+}
+
+func (lg *Logger) StartAsyncSave() {
+	if !lg.async {
+		lg.async = true
+		go lg.save()
 	}
-	lg.syncClose <- true
 }
 
 func (lg *Logger) SetFuncDepth(depth int) {
@@ -207,11 +221,16 @@ func (lg *Logger) Debug(format string, v ...interface{}) {
 }
 
 func (lg *Logger) Close() {
-	if lg.msgQueue != nil {
-		close(lg.msgQueue)
-		lg.msgQueue = nil
+	if lg.async {
+		if lg.msgQueue != nil {
+			close(lg.msgQueue)
+			lg.msgQueue = nil
+		}
+		lg.syncClose <- true
 	}
-	<-lg.syncClose
+	for _, output := range lg.outputs {
+		output.Close()
+	}
 }
 
 var stdLogger *Logger
@@ -239,6 +258,10 @@ func init() {
 	fileconf.LogLevel = LevelDebug
 	fileconfbuf, _ := json.Marshal(fileconf)
 	stdLogger.SetLogger(FILE_PROTOCOL, string(fileconfbuf))
+}
+
+func StartAsyncSave() {
+	stdLogger.StartAsyncSave()
 }
 
 func SetTcpLog(jsonconfig string) {

@@ -21,6 +21,6 @@ func TestUdpLog(t *testing.T) {
 		lg.Warn("Warn %d", i)
 		lg.Error("Error %d", i)
 	}
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second)
 	lg.Close()
 }

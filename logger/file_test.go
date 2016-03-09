@@ -22,6 +22,7 @@ func TestFile(t *testing.T) {
 		t.Error(err)
 	}
 	lg.SetLogger(FILE_PROTOCOL, string(confbuf))
+	lg.StartAsyncSave()
 	lg.SetFuncDepth(2)
 	lg.SetPrefix("filetest")
 
