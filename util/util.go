@@ -64,10 +64,7 @@ func GetCurrentPath() string {
 
 func GetIntranetIP() string {
 	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		log.Println(err.Error())
-		os.Exit(1)
-	}
+	CheckError(err)
 	for _, addr := range addrs {
 		var ip net.IP
 		switch v := addr.(type) {
