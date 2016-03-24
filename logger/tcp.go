@@ -19,14 +19,16 @@ func (adapter TcpLogAdapter) newLoggerInstance() LoggerInterface {
 }
 
 type TcpLogConfig struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	LogLevel int    `json:"loglevel"`
 }
 
 type TcpLogWriter struct {
 	lg      *log.Logger
 	tcpAddr *net.TCPAddr
 	tcpConn *net.TCPConn
+	config  TcpLogConfig
 }
 
 func (tlw TcpLogWriter) Write(b []byte) (int, error) {
@@ -71,13 +73,12 @@ func (tlw *TcpLogWriter) connect() error {
 }
 
 func (tlw *TcpLogWriter) Init(jsonconfig string) error {
-	var config TcpLogConfig
-	err := json.Unmarshal([]byte(jsonconfig), &config)
+	err := json.Unmarshal([]byte(jsonconfig), &tlw.config)
 	if err != nil {
 		log.Panicln(err.Error())
 	}
 
-	tlw.tcpAddr, err = net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", config.Host, config.Port))
+	tlw.tcpAddr, err = net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", tlw.config.Host, tlw.config.Port))
 	if err != nil {
 		log.Panicln(err.Error())
 	}
@@ -85,7 +86,14 @@ func (tlw *TcpLogWriter) Init(jsonconfig string) error {
 	return tlw.connect()
 }
 
+func (tlw *TcpLogWriter) SetLogLevel(loglevel int) {
+	tlw.config.LogLevel = loglevel
+}
+
 func (tlw TcpLogWriter) WriteMsg(msg string, level int) error {
+	if level < tlw.config.LogLevel {
+		return nil
+	}
 	tlw.lg.Print(msg)
 	return nil
 }

@@ -10,19 +10,18 @@ import (
 type brush func(string) string
 
 func newBrush(color string) brush {
-	pre := "\033["
 	reset := "\033[0m"
 	return func(text string) string {
-		return pre + color + text + reset
+		return color + text + reset
 	}
 }
 
 var colors = []brush{
-	newBrush("1;35m"), // Painc     magenta
-	newBrush("1;31m"), // Error     red
-	newBrush("1;33m"), // Warn	    yellow
-	newBrush("1;32m"), // Info		green
-	newBrush("1;34m"), // Debug     blue
+	newBrush("\033[0m"),     // Debue  endcolor
+	newBrush("\033[01;32m"), // Info   green
+	newBrush("\033[01;33m"), // Warn   yellow
+	newBrush("\033[22;31m"), // Error  red
+	newBrush("\033[22;35m"), // Painc  magenta
 }
 
 type ConsoleLogAdapter struct {
@@ -59,9 +58,13 @@ func (c *ConsoleWriter) Init(jsonconfig string) error {
 	return nil
 }
 
+func (c *ConsoleWriter) SetLogLevel(loglevel int) {
+	c.config.LogLevel = loglevel
+}
+
 // write message in console.
 func (c *ConsoleWriter) WriteMsg(msg string, level int) error {
-	if level > c.config.LogLevel {
+	if level < c.config.LogLevel {
 		return nil
 	}
 	if goos := runtime.GOOS; goos == "windows" {

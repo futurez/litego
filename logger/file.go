@@ -61,9 +61,13 @@ func (this *FileLogWriter) Init(jsonconfig string) error {
 	return this.createLogFile()
 }
 
-func (this *FileLogWriter) Write(b []byte) (int, error) {
-	this.curSize += len(b)
-	return this.fd.Write(b)
+func (fw *FileLogWriter) SetLogLevel(loglevel int) {
+	fw.config.LogLevel = loglevel
+}
+
+func (fw *FileLogWriter) Write(b []byte) (int, error) {
+	fw.curSize += len(b)
+	return fw.fd.Write(b)
 }
 
 func (this *FileLogWriter) setFd(fd *os.File) error {
@@ -91,12 +95,12 @@ func (this *FileLogWriter) docheck() {
 }
 
 // write logger message into file.
-func (this *FileLogWriter) WriteMsg(msg string, level int) error {
-	if level > this.config.LogLevel {
+func (fw *FileLogWriter) WriteMsg(msg string, level int) error {
+	if fw.fd == nil || level < fw.config.LogLevel {
 		return nil
 	}
-	this.lg.Println(msg)
-	this.docheck()
+	fw.lg.Println(msg)
+	fw.docheck()
 	return nil
 }
 
@@ -106,13 +110,13 @@ func (this *FileLogWriter) createLogFile() error {
 		pathname := this.config.FileName[0:offset]
 		err := os.MkdirAll(pathname, 0660)
 		if err != nil {
-			log.Printf("filename=%s, err=%s\n", this.config.FileName, err.Error())
+			log.Printf("%s\n", err.Error())
 			return err
 		}
 	}
 	fd, err := os.OpenFile(this.config.FileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
-		log.Printf("filename=%s, err=%s\n", this.config.FileName, err.Error())
+		log.Printf("%s\n", err.Error())
 		return err
 	}
 	this.openDate = time.Now().Day()

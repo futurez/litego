@@ -1,9 +1,8 @@
 // Usage:
 //
-// import "github.com/zhoufuture/golite/logger"
+// import "Common/logger"
 //
 // Use it like this:
-//  logger.Fatal("fatal")
 //  logger.Panic("panic")
 //  logger.Error("error")
 //	logger.Info("info")
@@ -15,19 +14,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
+	"os"
 	"path"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
-
-	"github.com/zhoufuture/golite/util"
 )
 
 const (
-	LevelPanic = iota
-	LevelError
-	LevelWarn
+	LevelDebug = iota
 	LevelInfo
-	LevelDebug
+	LevelWarn
+	LevelError
+	LevelPanic
 )
 
 const (
@@ -35,6 +36,7 @@ const (
 	FILE_PROTOCOL    = "file"
 	TCP_PROTOCOL     = "tcp"
 	UDP_PROTOCOL     = "udp"
+	ALL_PROTOCOL     = "all"
 )
 
 type LoggerAdapter interface {
@@ -43,6 +45,7 @@ type LoggerAdapter interface {
 
 type LoggerInterface interface {
 	Init(config string) error
+	SetLogLevel(loglevel int)
 	WriteMsg(msg string, level int) error
 	Close()
 }
@@ -82,8 +85,8 @@ func NewLogger(channellen int64) *Logger {
 	lg := &Logger{
 		funcdepth: 3,
 		async:     false,
-		localip:   util.GetIntranetIP(),
-		appname:   util.GetAppName(),
+		localip:   GetIntranetIP(),
+		appname:   GetAppName(),
 		syncClose: make(chan bool),
 		msgQueue:  make(chan *logMsg, channellen),
 		outputs:   make(map[string]LoggerInterface),
@@ -143,6 +146,12 @@ func (lg *Logger) write(loglevel int, msg string) {
 		}
 	}
 
+	if loglevel == LevelPanic {
+		lg.outputMsg(lm)
+		panic(lm.msg)
+		return
+	}
+
 	if lg.async {
 		lg.msgQueue <- lm
 	} else {
@@ -151,6 +160,8 @@ func (lg *Logger) write(loglevel int, msg string) {
 }
 
 func (lg *Logger) outputMsg(lm *logMsg) {
+	lg.Lock()
+	defer lg.Unlock()
 	for _, output := range lg.outputs {
 		err := output.WriteMsg(lm.msg, lm.level)
 		if err != nil {
@@ -195,29 +206,68 @@ func (lg Logger) GetPrefix() string {
 	return lg.prefix
 }
 
-func (lg *Logger) Panic(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[P] "+format, v...)
-	lg.write(LevelPanic, msg)
+func (lg *Logger) SetLogLevel(protocol string, loglevel int) error {
+	switch protocol {
+	case CONSOLE_PROTOCOL:
+		fallthrough
+	case FILE_PROTOCOL:
+		fallthrough
+	case TCP_PROTOCOL:
+		fallthrough
+	case UDP_PROTOCOL:
+		output := lg.outputs[protocol]
+		if output == nil {
+			return fmt.Errorf("%s not use...", protocol)
+		}
+		output.SetLogLevel(loglevel)
+	case ALL_PROTOCOL:
+		for _, output := range lg.outputs {
+			output.SetLogLevel(loglevel)
+		}
+	default:
+		return fmt.Errorf("fuck you, err protocol %s.", protocol)
+	}
+	return nil
 }
 
-func (lg *Logger) Error(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[E] "+format, v...)
-	lg.write(LevelError, msg)
+func (lg *Logger) Panic(v ...interface{}) {
+	lg.write(LevelPanic, "[P] "+fmt.Sprint(v...))
 }
 
-func (lg *Logger) Warn(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[W] "+format, v...)
-	lg.write(LevelWarn, msg)
+func (lg *Logger) Error(v ...interface{}) {
+	lg.write(LevelError, "[E] "+fmt.Sprint(v...))
 }
 
-func (lg *Logger) Info(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[I] "+format, v...)
-	lg.write(LevelInfo, msg)
+func (lg *Logger) Warn(v ...interface{}) {
+	lg.write(LevelWarn, "[W] "+fmt.Sprint(v...))
 }
 
-func (lg *Logger) Debug(format string, v ...interface{}) {
-	msg := fmt.Sprintf("[D] "+format, v...)
-	lg.write(LevelDebug, msg)
+func (lg *Logger) Info(v ...interface{}) {
+	lg.write(LevelInfo, "[I] "+fmt.Sprint(v...))
+}
+
+func (lg *Logger) Debug(v ...interface{}) {
+	lg.write(LevelDebug, "[D] "+fmt.Sprint(v...))
+}
+
+func (lg *Logger) Panicf(format string, v ...interface{}) {
+	lg.write(LevelPanic, fmt.Sprintf("[P] "+format, v...))
+}
+
+func (lg *Logger) Errorf(format string, v ...interface{}) {
+	lg.write(LevelError, fmt.Sprintf("[E] "+format, v...))
+}
+
+func (lg *Logger) Warnf(format string, v ...interface{}) {
+	lg.write(LevelWarn, fmt.Sprintf("[W] "+format, v...))
+}
+
+func (lg *Logger) Infof(format string, v ...interface{}) {
+	lg.write(LevelInfo, fmt.Sprintf("[I] "+format, v...))
+}
+
+func (lg *Logger) Debugf(format string, v ...interface{}) {
+	lg.write(LevelDebug, fmt.Sprintf("[D] "+format, v...))
 }
 
 func (lg *Logger) Close() {
@@ -236,7 +286,7 @@ func (lg *Logger) Close() {
 var stdLogger *Logger
 
 func getlogname() string {
-	return util.GetCurrentPath() + "/../log/" + util.GetAppName() + ".log"
+	return GetCurrentPath() + "/../log/" + GetAppName() + ".log"
 }
 
 func init() {
@@ -272,6 +322,10 @@ func SetUdpLog(jsonconfig string) {
 	stdLogger.SetLogger(UDP_PROTOCOL, jsonconfig)
 }
 
+func SetLogLevel(protocol string, loglevel int) error {
+	return stdLogger.SetLogLevel(protocol, loglevel)
+}
+
 func SetPrefix(prefix string) {
 	stdLogger.SetPrefix(prefix)
 }
@@ -280,26 +334,111 @@ func GetPrefix() string {
 	return stdLogger.GetPrefix()
 }
 
-func Panic(format string, v ...interface{}) {
-	stdLogger.Panic(format, v...)
+func Panic(v ...interface{}) {
+	stdLogger.Panic(v...)
 }
 
-func Error(format string, v ...interface{}) {
-	stdLogger.Error(format, v...)
+func Error(v ...interface{}) {
+	stdLogger.Error(v...)
 }
 
-func Warn(format string, v ...interface{}) {
-	stdLogger.Warn(format, v...)
+func Warn(v ...interface{}) {
+	stdLogger.Warn(v...)
 }
 
-func Info(format string, v ...interface{}) {
-	stdLogger.Info(format, v...)
+func Info(v ...interface{}) {
+	stdLogger.Info(v...)
 }
 
-func Debug(format string, v ...interface{}) {
-	stdLogger.Debug(format, v...)
+func Debug(v ...interface{}) {
+	stdLogger.Debug(v...)
+}
+
+func Panicf(format string, v ...interface{}) {
+	stdLogger.Panicf(format, v...)
+}
+
+func Errorf(format string, v ...interface{}) {
+	stdLogger.Errorf(format, v...)
+}
+
+func Warnf(format string, v ...interface{}) {
+	stdLogger.Warnf(format, v...)
+}
+
+func Infof(format string, v ...interface{}) {
+	stdLogger.Infof(format, v...)
+}
+
+func Debugf(format string, v ...interface{}) {
+	stdLogger.Debugf(format, v...)
 }
 
 func Close() {
 	stdLogger.Close()
+}
+
+func GetAppName() string {
+	execfile := os.Args[0]
+	if runtime.GOOS == `windows` {
+		execfile = strings.Replace(execfile, "\\", "/", -1)
+	}
+	_, filename := path.Split(execfile)
+	return filename
+}
+
+func GetCurrentPath() string {
+	curpath, _ := os.Getwd()
+	return curpath
+}
+
+func GetIntranetIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		if ip == nil || ip.IsLoopback() {
+			continue
+		}
+		ip = ip.To4()
+		if ip == nil {
+			continue
+		}
+		if IsIntranetIP(ip.String()) {
+			return ip.String()
+		}
+	}
+	return "127.0.0.1"
+}
+
+// 10.0.0.0 ~ 10.255.255.255(A)
+// 172.16.0.0 ~ 172.31.255.255(B)
+// 192.168.0.0 ~ 192.168.255.255(C)
+func IsIntranetIP(ip string) bool {
+	if strings.HasPrefix(ip, "10.") || strings.HasPrefix(ip, "192.168.") {
+		return true
+	}
+	if strings.HasPrefix(ip, "172.") {
+		arr := strings.Split(ip, ".")
+		if len(arr) != 4 {
+			return false
+		}
+		second, err := strconv.ParseInt(arr[1], 10, 64)
+		if err != nil {
+			return false
+		}
+		if second >= 16 && second <= 31 {
+			return true
+		}
+	}
+	return false
 }

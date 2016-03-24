@@ -17,14 +17,16 @@ func (adapter UdpLogAdapter) newLoggerInstance() LoggerInterface {
 }
 
 type UdpLogConfig struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	LogLevel int    `json:"loglevel"`
 }
 
 type UdpLogWriter struct {
 	lg      *log.Logger
 	udpAddr *net.UDPAddr
 	udpConn *net.UDPConn
+	config  UdpLogConfig
 }
 
 func (ulw UdpLogWriter) Write(b []byte) (int, error) {
@@ -42,13 +44,12 @@ func (ulw UdpLogWriter) Write(b []byte) (int, error) {
 }
 
 func (ulw *UdpLogWriter) Init(jsonconfig string) error {
-	var config UdpLogConfig
-	err := json.Unmarshal([]byte(jsonconfig), &config)
+	err := json.Unmarshal([]byte(jsonconfig), &ulw.config)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	ulw.udpAddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", config.Host, config.Port))
+	ulw.udpAddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ulw.config.Host, ulw.config.Port))
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -60,7 +61,14 @@ func (ulw *UdpLogWriter) Init(jsonconfig string) error {
 	return nil
 }
 
+func (ulw *UdpLogWriter) SetLogLevel(loglevel int) {
+	ulw.config.LogLevel = loglevel
+}
+
 func (ulw UdpLogWriter) WriteMsg(msg string, level int) error {
+	if level < ulw.config.LogLevel {
+		return nil
+	}
 	ulw.lg.Println(msg)
 	return nil
 }

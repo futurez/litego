@@ -9,6 +9,7 @@ func TestConsole(t *testing.T) {
 	lg.SetFuncDepth(2)
 	lg.SetPrefix("consoletest")
 	lg.SetLogger(CONSOLE_PROTOCOL, "")
+	lg.Panic("Panic")
 	lg.Error("error")
 	lg.Warn("warn")
 	lg.Info("info")
