@@ -27,15 +27,15 @@ func Rand() uint32 {
 	return mathRand.Uint32()
 }
 
-func GetUUID() string {
+func UUID() string {
 	b := make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return "UUID-ERROR"
 	}
-	return GetMd5String(base64.URLEncoding.EncodeToString(b))
+	return Md5Hash(base64.URLEncoding.EncodeToString(b))
 }
 
-func GetMd5String(s string) string {
+func Md5Hash(s string) string {
 	h := md5.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
