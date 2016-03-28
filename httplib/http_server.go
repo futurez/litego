@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golite/litego/logger"
+	"github.com/futurez/litego/logger"
 )
 
 //http server config

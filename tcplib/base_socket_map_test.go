@@ -1,8 +1,7 @@
-package model
+package tcplib
 
 import (
-	"litego/logger"
-	"litego/network/tcplib"
+	"github.com/futurez/litego/logger"
 )
 
 type ServerManager struct {

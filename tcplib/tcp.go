@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/golite/litego/logger"
+	"github.com/futurez/litego/logger"
 )
 
 type Socketer interface {

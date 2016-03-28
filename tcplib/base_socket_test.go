@@ -1,10 +1,9 @@
-package model
+package tcplib
 
 import (
 	"fmt"
-	"litego/logger"
-	"litego/network/tcplib"
-	"protocol"
+
+	"github.com/futurez/litego/logger"
 )
 
 type ServerConnect struct {

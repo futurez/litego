@@ -2,7 +2,8 @@ package tcplib
 
 import (
 	"errors"
-	"litego/logger"
+
+	"github.com/futurez/litego/logger"
 )
 
 type BaseSocket struct {
