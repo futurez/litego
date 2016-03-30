@@ -1,4 +1,4 @@
-package httplite
+package httplib
 
 import (
 	"encoding/json"
@@ -64,16 +64,16 @@ func (hs *HttpServer) ListenAndServe() {
 	}()
 }
 
-func WriteResponseJson(w http.ResponseWriter, code int, resp interface{}) {
+func HttpResponse(w http.ResponseWriter, code int, contentType string, respData []byte) {
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(code)
+	w.Write(respData)
+}
+
+func HttpResponseJson(w http.ResponseWriter, code int, resp interface{}) {
 	w.Header().Set("Accept", "application/json")
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(code)
 	jsonBytes, _ := json.Marshal(resp)
 	w.Write(jsonBytes)
-}
-
-func WriteResponse(w http.ResponseWriter, code int, contentType string, respData []byte) {
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(code)
-	w.Write(respData)
 }

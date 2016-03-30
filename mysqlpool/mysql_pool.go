@@ -3,6 +3,7 @@ package mysqlpool
 import (
 	"database/sql"
 
+	"github.com/futurez/litego/logger"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -42,8 +43,11 @@ func NewMysqlConnPool(username, password, hostname, port, database, charset stri
 	}
 
 	var err error
+
 	db.dbconnpool, err = sql.Open("mysql",
-		db.username+":"+db.password+"@tcp("+db.hostname+":"+db.port+")/"+db.database+"?charset="+db.charset)
+		(db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
+
+	logger.Debug("dsn :", (db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
 
 	db.dbconnpool.SetMaxOpenConns(db.maxopen)
 
