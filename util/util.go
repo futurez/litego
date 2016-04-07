@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -108,4 +109,18 @@ func IsIntranetIP(ip string) bool {
 		}
 	}
 	return false
+}
+
+func CheckPhone(phone string) bool {
+	if m, _ := regexp.MatchString(`^(1[3|4|5|8][0-9]\d{4,8})$`, phone); !m {
+		return false
+	}
+	return true
+}
+
+func ChechEmail(email string) bool {
+	if m, _ := regexp.MatchString(`^([\w\.\_]{2,10})@(\w{1,}).([a-z]{2,4})$`, email); !m {
+		return false
+	}
+	return true
 }

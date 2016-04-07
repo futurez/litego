@@ -68,19 +68,67 @@ func HttpRequest(url string, method int, headers map[string]string, data []byte)
 	return resp_body, nil
 }
 
-func HttpRequestJson(url string, req interface{}) ([]byte, error) {
-	jsonBytes, _ := json.Marshal(req)
-	return HttpRequest(url, METHOD_POST, jsonHeaders, jsonBytes)
+func HttpRequestJsonData(url string, req interface{}) ([]byte, error) {
+	jsonBytes, err := json.Marshal(req)
+	if err != nil {
+		logger.Warn("HttpRequestJsonData : encode req to json failed.")
+		return nil, err
+	}
+
+	respData, err := HttpRequest(url, METHOD_POST, jsonHeaders, jsonBytes)
+	if err != nil {
+		logger.Warn("HttpRequestJsonData : http request failed.")
+		return nil, err
+	}
+	return respData, nil
 }
 
-func HttpRequestJsonToken(url string, headers map[string]string, req interface{}) ([]byte, error) {
+func HttpRequestJson(url string, req, resp interface{}) error {
+	jsonBytes, err := json.Marshal(req)
+	if err != nil {
+		logger.Warn("HttpRequestJson : encode req to json failed.")
+		return err
+	}
+
+	respData, err := HttpRequest(url, METHOD_POST, jsonHeaders, jsonBytes)
+	if err != nil {
+		logger.Warn("HttpRequestJson : http request failed.")
+		return err
+	}
+
+	err = json.Unmarshal(respData, resp)
+	if err != nil {
+		logger.Warn("HttpRequestJson : decode resp json data failed.")
+		return err
+	}
+	return nil
+}
+
+func HttpRequestJsonToken(url string, headers map[string]string, req, resp interface{}) error {
 	if headers == nil {
-		return HttpRequestJson(url, req)
+		return HttpRequestJson(url, req, resp)
+	}
+
+	jsonBytes, err := json.Marshal(req)
+	if err != nil {
+		logger.Warn("HttpRequestJson : encode req to json failed.")
+		return err
 	}
 
 	for k, v := range jsonHeaders {
 		headers[k] = v
 	}
-	jsonBytes, _ := json.Marshal(req)
-	return HttpRequest(url, METHOD_POST, headers, jsonBytes)
+
+	respData, err := HttpRequest(url, METHOD_POST, headers, jsonBytes)
+	if err != nil {
+		logger.Warn("HttpRequestJson : http request failed.")
+		return err
+	}
+
+	err = json.Unmarshal(respData, resp)
+	if err != nil {
+		logger.Warn("HttpRequestJson : decode resp json data failed.")
+		return err
+	}
+	return nil
 }

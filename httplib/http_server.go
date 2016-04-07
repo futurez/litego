@@ -67,6 +67,7 @@ func (hs *HttpServer) ListenAndServe() {
 func HttpResponse(w http.ResponseWriter, code int, contentType string, respData []byte) {
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(code)
+	logger.Info("HttpResponse : resp=", string(respData))
 	w.Write(respData)
 }
 
@@ -75,5 +76,30 @@ func HttpResponseJson(w http.ResponseWriter, code int, resp interface{}) {
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
 	w.WriteHeader(code)
 	jsonBytes, _ := json.Marshal(resp)
+	logger.Debug("HttpResponseJson : resp=", string(jsonBytes))
 	w.Write(jsonBytes)
+}
+
+func HttpResponseImage(w http.ResponseWriter, picData []byte) {
+	w.Header().Set("Content-Type", "image")
+	w.WriteHeader(http.StatusOK)
+	w.Write(picData)
+}
+
+func MakeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		addr := r.Header.Get("X-Real-IP")
+		if addr == "" {
+			addr = r.Header.Get("X-Forwarded-For")
+			if addr == "" {
+				addr = r.RemoteAddr
+			}
+		}
+
+		logger.Infof("=>Start %s %s for %s", r.Method, r.URL.Path, addr)
+		fn(w, r)
+		logger.Infof("=>Finish %s %s for %s in %v\n", r.Method, r.URL.Path, addr, time.Since(start))
+	}
 }

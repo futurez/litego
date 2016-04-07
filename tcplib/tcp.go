@@ -46,16 +46,15 @@ func handleRead(conn *net.TCPConn, socketer Socketer) {
 		n, err := conn.Read(buf)
 		if err != nil {
 			if err == io.EOF {
-				logger.Warn("connection is closed.", conn.RemoteAddr().String())
+				logger.Info("Read data End.", conn.RemoteAddr().String())
+				socketer.Clearup() //数据应该要被处理的
 			} else {
 				logger.Warn("Read Error: %s", err.Error())
+				socketer.Clearup()
+				return
 			}
-			socketer.Clearup()
-			return
 		}
-
 		recvBuf = append(recvBuf, buf[:n]...)
-
 		for {
 			id, data, ok := decodePacket(&recvBuf)
 			if ok {

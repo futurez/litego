@@ -47,7 +47,7 @@ func NewMysqlConnPool(username, password, hostname, port, database, charset stri
 	db.dbconnpool, err = sql.Open("mysql",
 		(db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
 
-	logger.Debug("dsn :", (db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
+	logger.Debug("dsn=", (db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
 
 	db.dbconnpool.SetMaxOpenConns(db.maxopen)
 
@@ -55,7 +55,7 @@ func NewMysqlConnPool(username, password, hostname, port, database, charset stri
 	if err != nil {
 		return nil, err
 	}
-	return db, err
+	return db, nil
 }
 
 func (m *MysqlConnPool) GetDBConn() *sql.DB {

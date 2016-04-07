@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -124,6 +125,17 @@ func (lg *Logger) DelLogger(name string) error {
 	}
 }
 
+func split(path string) string {
+	i := strings.LastIndex(path, "/")
+	if i == -1 {
+		return path
+	}
+	file := path[i+1:]
+	path = path[:i]
+	i = strings.LastIndex(path, "/")
+	return path[i+1:] + "/" + file
+}
+
 func (lg *Logger) write(loglevel int, msg string) {
 	lm := &logMsg{level: loglevel}
 	if lg.funcdepth > 0 {
@@ -132,17 +144,17 @@ func (lg *Logger) write(loglevel int, msg string) {
 			file = "???"
 			line = 0
 		}
-		_, filename := path.Split(file)
+		filename := split(file)
 		if lg.bprefix {
-			lm.msg = fmt.Sprintf("%s/%s/%s/%s:%d %s", lg.localip, lg.appname, lg.prefix, filename, line, msg)
+			lm.msg = fmt.Sprintf("%s %s %s %s:%d %s", lg.localip, lg.appname, lg.prefix, filename, line, msg)
 		} else {
-			lm.msg = fmt.Sprintf("%s/%s/%s:%d %s", lg.localip, lg.appname, filename, line, msg)
+			lm.msg = fmt.Sprintf("%s %s %s:%d %s", lg.localip, lg.appname, filename, line, msg)
 		}
 	} else {
 		if lg.bprefix {
-			lm.msg = fmt.Sprintf("%s/%s/%s %s", lg.localip, lg.appname, lg.prefix, msg)
+			lm.msg = fmt.Sprintf("%s %s %s %s", lg.localip, lg.appname, lg.prefix, msg)
 		} else {
-			lm.msg = fmt.Sprintf("%s/%s %s", lg.localip, lg.appname, msg)
+			lm.msg = fmt.Sprintf("%s %s %s", lg.localip, lg.appname, msg)
 		}
 	}
 
@@ -270,6 +282,14 @@ func (lg *Logger) Debugf(format string, v ...interface{}) {
 	lg.write(LevelDebug, fmt.Sprintf("[D] "+format, v...))
 }
 
+func (lg *Logger) PrintStack() {
+	lm := logMsg{
+		level: LevelError,
+		msg:   string(debug.Stack()),
+	}
+	lg.outputMsg(&lm)
+}
+
 func (lg *Logger) Close() {
 	if lg.async {
 		if lg.msgQueue != nil {
@@ -372,6 +392,10 @@ func Infof(format string, v ...interface{}) {
 
 func Debugf(format string, v ...interface{}) {
 	stdLogger.Debugf(format, v...)
+}
+
+func PrintStack() {
+	stdLogger.PrintStack()
 }
 
 func Close() {
