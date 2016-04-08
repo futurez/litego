@@ -119,7 +119,7 @@ func CheckPhone(phone string) bool {
 }
 
 func ChechEmail(email string) bool {
-	if m, _ := regexp.MatchString(`^([\w\.\_]{2,10})@(\w{1,}).([a-z]{2,4})$`, email); !m {
+	if m, _ := regexp.MatchString(`^[A-Za-zd]+([-_.][A-Za-zd]+)*@([A-Za-zd]+[-.])+[A-Za-zd]{2,5}$`, email); !m {
 		return false
 	}
 	return true

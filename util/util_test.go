@@ -10,11 +10,15 @@ func TestRandomNumber(t *testing.T) {
 	t.Log("2 random number :", Rand())
 }
 
-func TestGetUUID(t *testing.T) {
-	t.Log("1 UUID :", GetUUID())
-	t.Log("2 UUID :", GetUUID())
+func TestUUID(t *testing.T) {
+	t.Log("1 UUID :", UUID())
+	t.Log("2 UUID :", UUID())
 }
 
 func TestGetIntranetIp(t *testing.T) {
 	t.Log("Local ip :", GetIntranetIP())
+}
+
+func TestChechEmail(t *testing.T) {
+	t.Log("ChechEmail : ", ChechEmail("abc@adc.com.cn"))
 }
