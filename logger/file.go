@@ -166,7 +166,7 @@ func (this *FileLogWriter) deleteOldLog() {
 			}
 		}()
 
-		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*int64(this.config.MaxDays)) {
+		if !info.IsDir() && info.ModTime().Second() <= (time.Now().Second()-60*60*24*int(this.config.MaxDays)) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(this.config.FileName)) {
 				os.Remove(path)
 			}

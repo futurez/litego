@@ -45,7 +45,7 @@ func NewMysqlConnPool(username, password, hostname, port, database, charset stri
 	var err error
 
 	db.dbconnpool, err = sql.Open("mysql",
-		(db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
+		(db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset + "&multiStatements=true"))
 
 	logger.Debug("dsn=", (db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
 

@@ -21,4 +21,6 @@ func TestGetIntranetIp(t *testing.T) {
 
 func TestChechEmail(t *testing.T) {
 	t.Log("ChechEmail : ", ChechEmail("abc@adc.com.cn"))
+	t.Log("ChechEmail : ", ChechEmail("abc@126.com"))
+	t.Log("ChechEmail : ", ChechEmail("abc@126.com.cn"))
 }

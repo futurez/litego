@@ -7,7 +7,7 @@ import (
 )
 
 type ServerConnect struct {
-	tcplib.BaseSocket
+	BaseSocket
 	serverType int
 }
 

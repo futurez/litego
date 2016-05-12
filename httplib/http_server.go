@@ -10,6 +10,8 @@ import (
 	"github.com/futurez/litego/logger"
 )
 
+type ServerHandler func(w http.ResponseWriter, r *http.Request)
+
 //http server config
 type Config struct {
 	Host           string
@@ -22,8 +24,8 @@ type Config struct {
 //type FuncHandler func(w http.ResponseWriter, req *http.Request)
 
 type HttpServer struct {
-	config     Config
-	handlerMux *http.ServeMux
+	config   Config
+	handlers map[string]ServerHandler
 }
 
 func NewServer(cfg Config) *HttpServer {
@@ -37,12 +39,13 @@ func NewServer(cfg Config) *HttpServer {
 		cfg.MaxHeaderBytes = http.DefaultMaxHeaderBytes
 	}
 	return &HttpServer{
-		config:     cfg,
-		handlerMux: http.NewServeMux()}
+		config:   cfg,
+		handlers: make(map[string]ServerHandler),
+	}
 }
 
-func (hs *HttpServer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	hs.handlerMux.HandleFunc(pattern, handler)
+func (hs *HttpServer) HandleFunc(pattern string, handler ServerHandler) {
+	hs.handlers[pattern] = handler
 }
 
 func (hs *HttpServer) ListenAndServe() {
@@ -51,7 +54,7 @@ func (hs *HttpServer) ListenAndServe() {
 	go func() {
 		server := &http.Server{
 			Addr:           addr,
-			Handler:        hs.handlerMux,
+			Handler:        hs,
 			ReadTimeout:    time.Duration(hs.config.ReadTimeout),
 			WriteTimeout:   time.Duration(hs.config.WriteTimeout),
 			MaxHeaderBytes: hs.config.MaxHeaderBytes}
@@ -62,6 +65,32 @@ func (hs *HttpServer) ListenAndServe() {
 			os.Exit(1)
 		}
 	}()
+}
+
+func (hs *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	if handler, ok := hs.handlers[path]; ok {
+		start := time.Now()
+		addr := r.Header.Get("X-Real-IP")
+		if addr == "" {
+			addr = r.Header.Get("X-Forwarded-For")
+			if addr == "" {
+				addr = r.RemoteAddr
+			}
+		}
+		logger.Infof("Start %s %s for %s", r.Method, r.URL.Path, addr)
+		handler(w, r)
+		logger.Infof("End %s %s for %s in %v\n", r.Method, r.URL.Path, addr, time.Since(start))
+	} else {
+		hs.serveNotFound(w, r)
+	}
+}
+
+func (this *HttpServer) serveNotFound(w http.ResponseWriter, r *http.Request) {
+	logger.Error("serveNotFound", r.Method, r.RequestURI, http.StatusNotFound)
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte(`{"error":"serivce not found"}`))
 }
 
 func HttpResponse(w http.ResponseWriter, code int, contentType string, respData []byte) {

@@ -3,8 +3,8 @@ package socket_io
 import (
 	"net/http"
 
-	"github.com/golite/litego/logger"
-	"github.com/golite/litego/util"
+	"github.com/futurez/litego/logger"
+	"github.com/futurez/litego/util"
 	"github.com/googollee/go-socket.io"
 )
 
@@ -14,7 +14,7 @@ type SocketioClient interface {
 }
 
 type SocketioServer interface {
-	CreateClient(so socketio.Socket) *SocketioClient
+	CreateClient(so socketio.Socket) SocketioClient
 }
 
 func HandleSocketIOClient(so socketio.Socket, client SocketioClient) {
@@ -36,7 +36,7 @@ func ListenSocketIOServer(port int, soserver SocketioServer) {
 	})
 
 	server.On("error", func(so socketio.Socket, err error) {
-		log.Println("error:", err)
+		logger.Error("error:", err)
 	})
 
 	http.Handle("/socket.io/", server)

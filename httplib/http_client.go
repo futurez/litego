@@ -118,12 +118,13 @@ func HttpRequestJsonToken(url string, headers map[string]string, req, resp inter
 	for k, v := range jsonHeaders {
 		headers[k] = v
 	}
-
+	//	logger.Debug("HttpRequestJsonToken : req=", string(jsonBytes))
 	respData, err := HttpRequest(url, METHOD_POST, headers, jsonBytes)
 	if err != nil {
 		logger.Warn("HttpRequestJson : http request failed.")
 		return err
 	}
+	//	logger.Debug("HttpRequestJsonToken : resp=", string(respData))
 
 	err = json.Unmarshal(respData, resp)
 	if err != nil {

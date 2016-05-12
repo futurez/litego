@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+	//	"fmt"
 	"encoding/hex"
 	"io"
 	"log"
@@ -24,8 +26,17 @@ func init() {
 	mathRand.Seed(int64(time.Now().Nanosecond()))
 }
 
-func Rand() uint32 {
-	return mathRand.Uint32()
+func Rand() int64 {
+	return mathRand.Int63()
+}
+
+func RandRange(min, max int64) int64 {
+	return mathRand.Int63n(max-min) + min
+}
+
+func AuthCode() string {
+	str := fmt.Sprintf("%06d", mathRand.Int31n(1000000))
+	return str
 }
 
 func UUID() string {
@@ -36,10 +47,15 @@ func UUID() string {
 	return Md5Hash(base64.URLEncoding.EncodeToString(b))
 }
 
+func RandNickname() string {
+	return fmt.Sprintf("nick-%d", time.Now().UnixNano())
+}
+
 func Md5Hash(s string) string {
 	h := md5.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+	//return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
 
 func CheckError(err error) {
@@ -112,6 +128,9 @@ func IsIntranetIP(ip string) bool {
 }
 
 func CheckPhone(phone string) bool {
+	if len(phone) <= 0 {
+		return false
+	}
 	if m, _ := regexp.MatchString(`^(1[3|4|5|8][0-9]\d{4,8})$`, phone); !m {
 		return false
 	}
@@ -119,7 +138,10 @@ func CheckPhone(phone string) bool {
 }
 
 func ChechEmail(email string) bool {
-	if m, _ := regexp.MatchString(`^[A-Za-zd]+([-_.][A-Za-zd]+)*@([A-Za-zd]+[-.])+[A-Za-zd]{2,5}$`, email); !m {
+	if len(email) <= 0 {
+		return false
+	}
+	if m, _ := regexp.MatchString(`^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$`, email); !m {
 		return false
 	}
 	return true
