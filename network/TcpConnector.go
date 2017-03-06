@@ -1,8 +1,8 @@
 package network
 
 import (
-	"base/logger"
-	"base/mylist"
+	"litego/logger"
+	"litego/mylist"
 	"fmt"
 	"io"
 	"net"

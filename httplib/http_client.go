@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"base/logger"
+	"litego/logger"
 )
 
 const (

@@ -1,10 +1,10 @@
 package mysqlz
 
 import (
-	"base/logger"
 	"database/sql"
 	"errors"
 	"fmt"
+	"litego/logger"
 	"regexp"
 	"strconv"
 	"strings"

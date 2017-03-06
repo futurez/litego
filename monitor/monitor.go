@@ -1,8 +1,8 @@
 package monitor
 
 import (
-	"base/httplib"
-	"base/logger"
+	"litego/httplib"
+	"litego/logger"
 	"io"
 	"net/http"
 )
