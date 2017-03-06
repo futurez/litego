@@ -33,6 +33,10 @@ const (
 )
 
 const (
+	LevelThird = LevelInfo //third import libs
+)
+
+const (
 	CONSOLE_PROTOCOL = "console"
 	FILE_PROTOCOL    = "file"
 	TCP_PROTOCOL     = "tcp"
@@ -102,7 +106,6 @@ func (lg *Logger) SetLogger(name, config string) error {
 		output := adapter.newLoggerInstance()
 		err := output.Init(config)
 		if err != nil {
-			log.Println(err.Error())
 			return err
 		}
 		lg.outputs[name] = output
@@ -131,9 +134,10 @@ func split(path string) string {
 		return path
 	}
 	file := path[i+1:]
-	path = path[:i]
-	i = strings.LastIndex(path, "/")
-	return path[i+1:] + "/" + file
+	return file
+	//path = path[:i]
+	//i = strings.LastIndex(path, "/")
+	//return path[i+1:] + "/" + file
 }
 
 func (lg *Logger) write(loglevel int, msg string) {
@@ -282,6 +286,11 @@ func (lg *Logger) Debugf(format string, v ...interface{}) {
 	lg.write(LevelDebug, fmt.Sprintf("[D] "+format, v...))
 }
 
+func (lg *Logger) Write(b []byte) (int, error) {
+	lg.write(LevelThird, fmt.Sprintf("[T] "+string(b)))
+	return len(b), nil
+}
+
 func (lg *Logger) PrintStack() {
 	lm := logMsg{
 		level: LevelError,
@@ -303,7 +312,14 @@ func (lg *Logger) Close() {
 	}
 }
 
-var stdLogger *Logger
+var (
+	stdLogger   *Logger
+	thirdLogger *log.Logger
+)
+
+func GetLogger() *log.Logger {
+	return thirdLogger
+}
 
 func getlogname() string {
 	return GetCurrentPath() + "/../log/" + GetAppName() + ".log"
@@ -328,6 +344,8 @@ func init() {
 	fileconf.LogLevel = LevelDebug
 	fileconfbuf, _ := json.Marshal(fileconf)
 	stdLogger.SetLogger(FILE_PROTOCOL, string(fileconfbuf))
+
+	thirdLogger = log.New(stdLogger, "", (log.Ldate | log.Ltime | log.Lmicroseconds))
 }
 
 func StartAsyncSave() {
@@ -465,4 +483,8 @@ func IsIntranetIP(ip string) bool {
 		}
 	}
 	return false
+}
+
+func Uid(uid uint32) string {
+	return fmt.Sprint("uid=", uid)
 }

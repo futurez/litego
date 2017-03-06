@@ -117,7 +117,7 @@ func (ini *IniConfigAdapter) ParseFile(name string) (Configurer, error) {
 }
 
 func (ini *IniConfigAdapter) ParseData(data []byte) (Configurer, error) {
-	tmpName := path.Join(os.TempDir(), "golite", fmt.Sprintf("%d", time.Now().Nanosecond()))
+	tmpName := path.Join(os.TempDir(), "iniconfig", fmt.Sprintf("%d", time.Now().Nanosecond()))
 	os.MkdirAll(path.Dir(tmpName), os.ModePerm)
 	if err := ioutil.WriteFile(tmpName, data, 0655); err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ type IniConfigurer struct {
 	sync.RWMutex
 }
 
-func (c *IniConfigurer) GetBool(key string, v ...bool) (bool, error) {
+func (c *IniConfigurer) GetBool(key string, v ...bool) bool {
 	var (
 		defval bool
 		bdef   bool
@@ -147,16 +147,16 @@ func (c *IniConfigurer) GetBool(key string, v ...bool) (bool, error) {
 
 	if val, err := strconv.ParseBool(c.getdata(key)); err != nil {
 		if bdef {
-			return defval, nil
+			return defval
 		} else {
-			return defval, err
+			return defval
 		}
 	} else {
-		return val, nil
+		return val
 	}
 }
 
-func (c *IniConfigurer) GetFloat(key string, v ...float64) (float64, error) {
+func (c *IniConfigurer) GetFloat(key string, v ...float64) float64 {
 	var (
 		defval float64
 		bdef   bool
@@ -169,16 +169,16 @@ func (c *IniConfigurer) GetFloat(key string, v ...float64) (float64, error) {
 
 	if val, err := strconv.ParseFloat(c.getdata(key), 64); err != nil {
 		if bdef {
-			return defval, nil
+			return defval
 		} else {
-			return defval, err
+			return defval
 		}
 	} else {
-		return val, nil
+		return val
 	}
 }
 
-func (c *IniConfigurer) GetInt(key string, v ...int) (int, error) {
+func (c *IniConfigurer) GetInt(key string, v ...int) int {
 	var (
 		defval int
 		bdef   bool
@@ -191,16 +191,16 @@ func (c *IniConfigurer) GetInt(key string, v ...int) (int, error) {
 
 	if val, err := strconv.Atoi(c.getdata(key)); err != nil {
 		if bdef {
-			return defval, nil
+			return defval
 		} else {
-			return defval, err
+			return defval
 		}
 	} else {
-		return val, nil
+		return val
 	}
 }
 
-func (c *IniConfigurer) GetInt64(key string, v ...int64) (int64, error) {
+func (c *IniConfigurer) GetInt64(key string, v ...int64) int64 {
 	var (
 		defval int64
 		bdef   bool
@@ -213,12 +213,12 @@ func (c *IniConfigurer) GetInt64(key string, v ...int64) (int64, error) {
 
 	if val, err := strconv.ParseInt(c.getdata(key), 10, 64); err != nil {
 		if bdef {
-			return defval, nil
+			return defval
 		} else {
-			return defval, err
+			return defval
 		}
 	} else {
-		return val, nil
+		return val
 	}
 }
 

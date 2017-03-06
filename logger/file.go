@@ -116,7 +116,6 @@ func (this *FileLogWriter) createLogFile() error {
 	}
 	fd, err := os.OpenFile(this.config.FileName, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
-		log.Printf("%s\n", err.Error())
 		return err
 	}
 	this.openDate = time.Now().Day()
@@ -158,6 +157,7 @@ func (this *FileLogWriter) backupFile() error {
 
 func (this *FileLogWriter) deleteOldLog() {
 	dir := filepath.Dir(this.config.FileName)
+	fmt.Println("filename=", this.config.FileName, " dir=", dir)
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -168,6 +168,7 @@ func (this *FileLogWriter) deleteOldLog() {
 
 		if !info.IsDir() && info.ModTime().Second() <= (time.Now().Second()-60*60*24*int(this.config.MaxDays)) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(this.config.FileName)) {
+				fmt.Println("remove=", path)
 				os.Remove(path)
 			}
 		}

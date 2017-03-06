@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/futurez/litego/logger"
+	"base/logger"
 )
 
 const (
@@ -17,12 +17,25 @@ const (
 	METHOD_POST
 )
 
-var jsonHeaders = map[string]string{
+var JsonHeaders = map[string]string{
 	"Accept":       "application/json",
 	"Content-Type": "application/json;charset=utf-8",
 }
 
+var FormHeaders = map[string]string{
+	"Content-Type": "application/x-www-form-urlencoded",
+}
+
+var MultiFormHeaders = map[string]string{
+	"Content-Type": "multipart/form-data",
+}
+
 func HttpRequest(url string, method int, headers map[string]string, data []byte) ([]byte, error) {
+	if headers == nil {
+		headers = FormHeaders
+		logger.Warn("Should be set HTTP headers")
+	}
+
 	var req *http.Request
 	var err error
 	switch method {
@@ -30,6 +43,7 @@ func HttpRequest(url string, method int, headers map[string]string, data []byte)
 		url = url + "?" + string(data)
 		req, err = http.NewRequest("GET", url, nil)
 	case METHOD_POST:
+		//logger.Info("data =", data)
 		req, err = http.NewRequest("POST", url, bytes.NewBuffer(data))
 	default:
 		logger.Warn("unknown http method = ", method)
@@ -50,7 +64,7 @@ func HttpRequest(url string, method int, headers map[string]string, data []byte)
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	resp, err := client.Do(req)
@@ -68,6 +82,15 @@ func HttpRequest(url string, method int, headers map[string]string, data []byte)
 	return resp_body, nil
 }
 
+func HttpRequestData(url string, data []byte) ([]byte, error) {
+	respData, err := HttpRequest(url, METHOD_POST, JsonHeaders, data)
+	if err != nil {
+		logger.Warn("HttpRequestJsonData : http request failed.")
+		return nil, err
+	}
+	return respData, nil
+}
+
 func HttpRequestJsonData(url string, req interface{}) ([]byte, error) {
 	jsonBytes, err := json.Marshal(req)
 	if err != nil {
@@ -75,7 +98,7 @@ func HttpRequestJsonData(url string, req interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	respData, err := HttpRequest(url, METHOD_POST, jsonHeaders, jsonBytes)
+	respData, err := HttpRequest(url, METHOD_POST, JsonHeaders, jsonBytes)
 	if err != nil {
 		logger.Warn("HttpRequestJsonData : http request failed.")
 		return nil, err
@@ -90,7 +113,7 @@ func HttpRequestJson(url string, req, resp interface{}) error {
 		return err
 	}
 
-	respData, err := HttpRequest(url, METHOD_POST, jsonHeaders, jsonBytes)
+	respData, err := HttpRequest(url, METHOD_POST, JsonHeaders, jsonBytes)
 	if err != nil {
 		logger.Warn("HttpRequestJson : http request failed.")
 		return err
@@ -115,7 +138,7 @@ func HttpRequestJsonToken(url string, headers map[string]string, req, resp inter
 		return err
 	}
 
-	for k, v := range jsonHeaders {
+	for k, v := range JsonHeaders {
 		headers[k] = v
 	}
 	//	logger.Debug("HttpRequestJsonToken : req=", string(jsonBytes))

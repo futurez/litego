@@ -1,6 +1,7 @@
 package mysqlz
 
 import (
+	"base/logger"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,8 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/futurez/litego/logger"
-	_ "github.com/futurez/mysql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type MysqlConnPool struct {
@@ -23,26 +23,17 @@ type MysqlConnPool struct {
 	dbconnpool *sql.DB
 }
 
-func NewMysqlConnPool(username, password, hostname, port, database, charset string, maxopen int) (*MysqlConnPool, error) {
+func NewMysqlConnPool(username, password, hostname, database string, maxopen int) (*MysqlConnPool, error) {
 	db := &MysqlConnPool{}
 
 	db.username = username
 	db.password = password
 	db.hostname = hostname
-	if port != "" {
-		db.port = port
-	} else {
-		db.port = "3306"
-	}
+	db.port = "3306"
 	db.database = database
-
-	if charset != "" {
-		db.charset = charset
-	} else {
-		db.charset = "utf8"
-	}
+	db.charset = "utf8"
 	if maxopen < 1 {
-		db.maxopen = 1
+		db.maxopen = 5
 	} else {
 		db.maxopen = maxopen
 	}
@@ -55,6 +46,7 @@ func NewMysqlConnPool(username, password, hostname, port, database, charset stri
 	logger.Debug("dsn=", (db.username + ":" + db.password + "@tcp(" + db.hostname + ":" + db.port + ")/" + db.database + "?charset=" + db.charset))
 
 	db.dbconnpool.SetMaxOpenConns(db.maxopen)
+	db.dbconnpool.SetMaxIdleConns(db.maxopen)
 
 	err = db.dbconnpool.Ping()
 	if err != nil {

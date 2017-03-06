@@ -4,16 +4,18 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
-	//	"fmt"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +28,11 @@ func init() {
 	mathRand.Seed(int64(time.Now().Nanosecond()))
 }
 
-func Rand() int64 {
+func Rand() int {
+	return int(mathRand.Int63())
+}
+
+func RandInt64() int64 {
 	return mathRand.Int63()
 }
 
@@ -145,4 +151,42 @@ func ChechEmail(email string) bool {
 		return false
 	}
 	return true
+}
+
+func MakeMysqlDns(username, password, hostname, port, database, charset string) string {
+	if port == "" {
+		port = "3306"
+	}
+
+	if charset == "" {
+		charset = "utf8"
+	}
+
+	dns := username + ":" + password + "@tcp(" + hostname + ":" + port + ")/" +
+		database + "?charset=" + charset // + "?parseTime=true"
+	return dns
+}
+
+func Init(debugmem bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(">>>>>>panic log:", err)
+			debug.PrintStack()
+		}
+	}()
+
+	if debugmem {
+		go func() {
+			http.ListenAndServe(":6060", nil)
+		}()
+	}
+
+	fmt.Println("set numcpu=", runtime.NumCPU())
+	numCpu := runtime.NumCPU()
+	runtime.GOMAXPROCS(numCpu)
+}
+
+func Waiting() {
+	waiting := make(chan bool)
+	fmt.Println("exit ", <-waiting)
 }

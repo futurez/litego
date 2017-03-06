@@ -6,6 +6,7 @@ import (
 
 const (
 	IniProtocol = "ini"
+	XmlProtocol = "xml"
 )
 
 type ConfigAdapter interface {
@@ -14,10 +15,10 @@ type ConfigAdapter interface {
 }
 
 type Configurer interface {
-	GetBool(key string, v ...bool) (bool, error)
-	GetFloat(key string, v ...float64) (float64, error)
-	GetInt(key string, v ...int) (int, error)
-	GetInt64(key string, v ...int64) (int64, error)
+	GetBool(key string, v ...bool) bool
+	GetFloat(key string, v ...float64) float64
+	GetInt(key string, v ...int) int
+	GetInt64(key string, v ...int64) int64
 	GetString(key string, v ...string) string
 	GetStrings(key string, v ...string) []string
 }

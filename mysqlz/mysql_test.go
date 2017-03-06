@@ -1,21 +1,20 @@
 package mysqlz
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 )
 
 func TestStoreProceduce(t *testing.T) {
-	connpool, err := NewMysqlConnPool("fcloud", "fcloud2015", "192.168.1.141", "3306", "gotye_open_live", "utf8", 20)
+	connpool, err := NewMysqlConnPool("test", "test", "192.168.115.51", "3306", "test", "utf8", 20)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 
 	var wait sync.WaitGroup
-
 	liveroomIds := [4]int64{210150, 210060, 210256, 210123}
-
 	for i := 0; i <= 7; i++ {
 		wait.Add(1)
 		go func(n int) {

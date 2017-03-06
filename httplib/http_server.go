@@ -1,13 +1,13 @@
 package httplib
 
 import (
+	"base/logger"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/futurez/litego/logger"
 )
 
 type ServerHandler func(w http.ResponseWriter, r *http.Request)
@@ -15,7 +15,7 @@ type ServerHandler func(w http.ResponseWriter, r *http.Request)
 //http server config
 type Config struct {
 	Host           string
-	Port           int
+	Port           uint16
 	ReadTimeout    time.Duration
 	WriteTimeout   time.Duration
 	MaxHeaderBytes int
@@ -78,31 +78,43 @@ func (hs *HttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				addr = r.RemoteAddr
 			}
 		}
-		logger.Infof("Start %s %s for %s", r.Method, r.URL.Path, addr)
+		logger.Infof(">>>Start %s %s for %s", r.Method, r.URL.Path, addr)
 		handler(w, r)
-		logger.Infof("End %s %s for %s in %v\n", r.Method, r.URL.Path, addr, time.Since(start))
+		logger.Infof(">>>End %s %s for %s in %v\n", r.Method, r.URL.Path, addr, time.Since(start))
 	} else {
-		hs.serveNotFound(w, r)
+		ServerNotFound(w, r)
 	}
 }
 
-func (this *HttpServer) serveNotFound(w http.ResponseWriter, r *http.Request) {
-	logger.Error("serveNotFound", r.Method, r.RequestURI, http.StatusNotFound)
+func ServerNotFound(w http.ResponseWriter, r *http.Request) {
+	logger.Error("serveNotFound", r.Method, " ", r.RequestURI, " ", http.StatusNotFound)
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusNotFound)
 	w.Write([]byte(`{"error":"serivce not found"}`))
 }
 
-func HttpResponse(w http.ResponseWriter, code int, contentType string, respData []byte) {
-	w.Header().Set("Content-Type", contentType)
+func ServerBadRequest(w http.ResponseWriter, r *http.Request, err error) {
+	logger.Error("serveNotFound", r.Method, " ", r.RequestURI, " ", http.StatusBadRequest)
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte(fmt.Sprintf(`{"error":"%s"}`, err.Error())))
+}
+
+func HttpResponse(w http.ResponseWriter, code int, respData []byte) {
+	w.Header().Set("Accept", "application/json")
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(code)
-	logger.Info("HttpResponse : resp=", string(respData))
 	w.Write(respData)
 }
 
 func HttpResponseJson(w http.ResponseWriter, code int, resp interface{}) {
 	w.Header().Set("Accept", "application/json")
 	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(code)
 	jsonBytes, _ := json.Marshal(resp)
 	logger.Debug("HttpResponseJson : resp=", string(jsonBytes))
@@ -111,24 +123,19 @@ func HttpResponseJson(w http.ResponseWriter, code int, resp interface{}) {
 
 func HttpResponseImage(w http.ResponseWriter, picData []byte) {
 	w.Header().Set("Content-Type", "image")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 	w.Write(picData)
 }
 
-func MakeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func MakeHandler(fn func(http.ResponseWriter, *http.Request, []byte)) ServerHandler {
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		addr := r.Header.Get("X-Real-IP")
-		if addr == "" {
-			addr = r.Header.Get("X-Forwarded-For")
-			if addr == "" {
-				addr = r.RemoteAddr
-			}
+		indata, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			logger.Warn("err ", err.Error())
+			ServerBadRequest(w, r, err)
+			return
 		}
-
-		logger.Infof("=>Start %s %s for %s", r.Method, r.URL.Path, addr)
-		fn(w, r)
-		logger.Infof("=>Finish %s %s for %s in %v\n", r.Method, r.URL.Path, addr, time.Since(start))
+		fn(w, r, indata)
 	}
 }
